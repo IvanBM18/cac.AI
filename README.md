@@ -14,7 +14,8 @@ pip install -r requirements.txt
 ## Correr el proyecto
 Activa el entorno de desarollo y luego corre esto para levantar el proyecto:
 ```shell
-python src/main.py
+cd src
+uvicorn main:app --reload
 ```
 
 ## Salir del Venv
