@@ -9,28 +9,36 @@ app = FastAPI()
 
 # Modelo para recibir datos
 class RegressionData(BaseModel):
-    submissions_totales: list[int]
-    promedio_respuestas: list[float]
-    submissions_correctas: list[int]
-    nuevo_dato: list[float]  # Para la predicción
+    submissionTotals: list[int]
+    avgCorrect: list[float]
+    correctSubmissions: list[int]
+    newContest: list[float]  # Para la predicción
+    
+class ContestData(BaseModel):
+    name : str
+    total: int
+    correct: float
 
-@app.get("/predict/")
+@app.get("/predict/data")
 def predict(data: RegressionData):
     
     # Convertir datos de entrada a arrays numpy
-    X = np.column_stack((data.submissions_totales, data.promedio_respuestas))
-    y = np.array(data.submissions_correctas)
+    X = np.column_stack((data.submissionTotals, data.avgCorrect))
+    y = np.array(data.correctSubmissions)
 
     # Crear y entrenar el modelo de regresión lineal
     model = LinearRegression()
     model.fit(X, y)
 
     # Realizar la predicción
-    prediccion = model.predict(np.array([data.nuevo_dato]))[0]
+    print(f"Nuevo dato: {data.newContest}")
+    prediccion = model.predict(np.array([data.newContest]))[0]
+    print(f"Predicción para el nuevo dato: {prediccion}")
+
 
     # Calcular la malla para la superficie de regresión
-    x_values = np.linspace(min(data.submissions_totales), max(data.submissions_totales), 100)
-    y_values = np.linspace(min(data.promedio_respuestas), max(data.promedio_respuestas), 100)
+    x_values = np.linspace(min(data.submissionTotals), max(data.submissionTotals), 100)
+    y_values = np.linspace(min(data.avgCorrect), max(data.avgCorrect), 100)
     X_grid, Y_grid = np.meshgrid(x_values, y_values)
     Z_grid = model.predict(np.column_stack((X_grid.ravel(), Y_grid.ravel())))
 
@@ -45,4 +53,40 @@ def predict(data: RegressionData):
     }
     return response
 
+@app.get("/predict/contest")
+def predict_contest(data: list[ContestData]):
+
+    if(len(data) < 5):
+        return {"error": "Not enough data"}
+    totalCount : int = 0
+    contestCount : int = 0
+    correctCount : int = 0
+    
+    submissionTotals : list[int] = []
+    avgCorrect : list[float] = []
+    correctSubmissions : list[int] = []
+    newContest : list[str] = []
+    
+    for index,contest in enumerate(data):
+        submissionTotals.append(totalCount)
+        
+        if(contestCount == 0):
+            avgCorrect.append(0)
+        else:
+            avgCorrect.append(correctCount/(contestCount))
+        correctSubmissions.append(contest.correct)
+        
+        totalCount += contest.total
+        correctCount += contest.correct
+        contestCount += 1
+    
+    mapedData : RegressionData = RegressionData(
+        submissionTotals=submissionTotals, 
+        avgCorrect=avgCorrect, 
+        correctSubmissions=correctSubmissions, 
+        newContest=[totalCount, correctCount/contestCount])
+    
+    print(mapedData)
+    
+    return predict(mapedData)
 # Para correr el servidor: uvicorn main:app --reload
