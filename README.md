@@ -14,6 +14,7 @@ pip install -r requirements.txt
 ## Correr el proyecto
 Activa el entorno de desarollo y luego corre esto para levantar el proyecto:
 ```shell
+cd src
 uvicorn main:app --reload
 ```
 
