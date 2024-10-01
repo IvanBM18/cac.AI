@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from typing import Optional
 import numpy as np
 import json
 from sklearn.linear_model import LinearRegression
@@ -9,21 +10,22 @@ app = FastAPI()
 
 # Modelo para recibir datos
 class RegressionData(BaseModel):
-    submissionTotals: list[int]
+    avgDifficulty: list[float]
     avgCorrect: list[float]
     correctSubmissions: list[int]
     newContest: list[float]  # Para la predicción
     
 class ContestData(BaseModel):
     name : str
-    total: int
-    correct: float
+    total: Optional[int] = None
+    correct: Optional[float] = None
+    difficulty: float
 
 @app.get("/predict/data")
 def predict(data: RegressionData):
     
     # Convertir datos de entrada a arrays numpy
-    X = np.column_stack((data.submissionTotals, data.avgCorrect))
+    X = np.column_stack((data.avgDifficulty, data.avgCorrect))
     y = np.array(data.correctSubmissions)
 
     # Crear y entrenar el modelo de regresión lineal
@@ -37,18 +39,19 @@ def predict(data: RegressionData):
 
 
     # Calcular la malla para la superficie de regresión
-    x_values = np.linspace(min(data.submissionTotals), max(data.submissionTotals), 100)
+    x_values = np.linspace(min(data.avgDifficulty), max(data.avgDifficulty), 100)
     y_values = np.linspace(min(data.avgCorrect), max(data.avgCorrect), 100)
     X_grid, Y_grid = np.meshgrid(x_values, y_values)
-    Z_grid = model.predict(np.column_stack((X_grid.ravel(), Y_grid.ravel())))
+    Z_grid = model.predict(np.column_stack((X_grid.ravel(), Y_grid.ravel()))).reshape(X_grid.shape)
 
     # Crear el JSON de respuesta
     response = {
+        "input": data.newContest,
         "prediccion": prediccion,
         "malla": {
-            "x": X_grid.flatten().tolist(),
-            "y": Y_grid.flatten().tolist(),
-            "z": Z_grid.flatten().tolist()
+            "x": X_grid.tolist(),
+            "y": Y_grid.tolist(),
+            "z": Z_grid.tolist()
         }
     }
     return response
@@ -58,33 +61,35 @@ def predict_contest(data: list[ContestData]):
 
     if(len(data) < 5):
         return {"error": "Not enough data"}
-    totalCount : int = 0
+    
     contestCount : int = 0
     correctCount : int = 0
+    totalDifficulty : float = 0
     
-    submissionTotals : list[int] = []
     avgCorrect : list[float] = []
+    avgDifficulty : list[float] = []
     correctSubmissions : list[int] = []
-    newContest : list[str] = []
     
     for index,contest in enumerate(data):
-        submissionTotals.append(totalCount)
         
         if(contestCount == 0):
             avgCorrect.append(0)
+            avgDifficulty.append(0)
         else:
             avgCorrect.append(correctCount/(contestCount))
-        correctSubmissions.append(contest.correct)
+            avgDifficulty.append(totalDifficulty/(contestCount))
+        correctSubmissions.append(contest.correct if contest.correct != None else 0)
         
-        totalCount += contest.total
-        correctCount += contest.correct
+        #If contestsDifficulty is null, set it to 0
+        totalDifficulty += contest.difficulty if contest.difficulty != None else 0
+        correctCount += contest.correct if contest.correct != None else 0
         contestCount += 1
     
     mapedData : RegressionData = RegressionData(
-        submissionTotals=submissionTotals, 
+        avgDifficulty=avgDifficulty, 
         avgCorrect=avgCorrect, 
         correctSubmissions=correctSubmissions, 
-        newContest=[totalCount, correctCount/contestCount])
+        newContest=[totalDifficulty/contestCount, correctCount/contestCount])
     
     print(mapedData)
     
