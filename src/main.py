@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from typing import Optional
 import numpy as np
 import json
 from sklearn.linear_model import LinearRegression
@@ -16,8 +17,8 @@ class RegressionData(BaseModel):
     
 class ContestData(BaseModel):
     name : str
-    total: int
-    correct: float
+    total: Optional[int] = None
+    correct: Optional[float] = None
     difficulty: float
 
 @app.get("/predict/data")
@@ -77,17 +78,18 @@ def predict_contest(data: list[ContestData]):
         else:
             avgCorrect.append(correctCount/(contestCount))
             avgDifficulty.append(totalDifficulty/(contestCount))
-        correctSubmissions.append(contest.correct)
+        correctSubmissions.append(contest.correct if contest.correct != None else 0)
         
-        totalDifficulty += contest.difficulty
-        correctCount += contest.correct
+        #If contestsDifficulty is null, set it to 0
+        totalDifficulty += contest.difficulty if contest.difficulty != None else 0
+        correctCount += contest.correct if contest.correct != None else 0
         contestCount += 1
     
     mapedData : RegressionData = RegressionData(
         avgDifficulty=avgDifficulty, 
         avgCorrect=avgCorrect, 
         correctSubmissions=correctSubmissions, 
-        newContest=[avgDifficulty/contestCount, correctCount/contestCount])
+        newContest=[totalDifficulty/contestCount, correctCount/contestCount])
     
     print(mapedData)
     
