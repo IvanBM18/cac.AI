@@ -8,7 +8,7 @@ from sklearn.linear_model import LinearRegression
 
 app = FastAPI()
 
-origins = ["*"]
+origins = ["*"] #TODO: Cambiar a la URL de producción
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,7 +32,9 @@ class ContestData(BaseModel):
     correct: Optional[float] = None
     difficulty: float
 
-@app.get("/predict/data")
+@app.get("/predict/data",
+         summary="Realiza una regresion lineal en base a los datos de entrada",
+         description="Recibe el promedio de dificultad y promedio de respuestas correctas en concursos anteriores para predecir el numero de problemas correctos para el siguiente concurso")
 def predict(data: RegressionData):
     
     # Convertir datos de entrada a arrays numpy
@@ -67,7 +69,9 @@ def predict(data: RegressionData):
     }
     return response
 
-@app.get("/predict/contest")
+@app.post("/predict/contest",
+          summary="Predice el numero de problemas correctos para el siguiente concurso",
+          description="Recibe una lista de concursos y predice el numero de problemas correctos para el siguiente concurso")
 def predict_contest(data: list[ContestData]):
 
     if(len(data) < 5):
