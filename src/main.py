@@ -47,7 +47,7 @@ def predict(data: RegressionData):
     # Crear el JSON de respuesta
     response = {
         "input": data.newContest,
-        "prediccion": prediccion,
+        "output": prediccion,
         "malla": {
             "x": X_grid.tolist(),
             "y": Y_grid.tolist(),
