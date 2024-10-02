@@ -32,7 +32,7 @@ class ContestData(BaseModel):
     correct: Optional[float] = None
     difficulty: float
 
-@app.get("/predict/data",
+@app.post("/predict/data",
          summary="Realiza una regresion lineal en base a los datos de entrada",
          description="Recibe el promedio de dificultad y promedio de respuestas correctas en concursos anteriores para predecir el numero de problemas correctos para el siguiente concurso")
 def predict(data: RegressionData):
