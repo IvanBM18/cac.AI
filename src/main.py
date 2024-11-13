@@ -1,10 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from pydantic import BaseModel
 from typing import Optional
 import numpy as np
-import json
 from sklearn.linear_model import LinearRegression
+from .crawl.codeforces import router as codeforces_router
+from .models.RegressionData import RegressionData
+from .models.ContestData import ContestData
 
 app = FastAPI()
 
@@ -17,20 +20,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(codeforces_router, prefix="/codeforces",tags=["Codeforces"])
 
-
-# Modelo para recibir datos
-class RegressionData(BaseModel):
-    avgDifficulty: list[float]
-    avgCorrect: list[float]
-    correctSubmissions: list[int]
-    newContest: list[float]  # Para la predicción
     
-class ContestData(BaseModel):
-    name : str
-    total: Optional[int] = None
-    correct: Optional[float] = None
-    difficulty: float
 
 @app.post("/predict/data",
          summary="Realiza una regresion lineal en base a los datos de entrada",
